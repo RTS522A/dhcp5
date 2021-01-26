@@ -119,6 +119,7 @@
     <ClCompile Include="DHCPLite.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DHCPMsgParser.h" />
     <ClInclude Include="toolbox.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

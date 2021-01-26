@@ -23,5 +23,8 @@
     <ClInclude Include="toolbox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DHCPMsgParser.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

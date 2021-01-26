@@ -1,0 +1,9 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/DHCPLite/v14
+/Debug
+/DHCPLite.VC.db
+/DHCPLite.VC.VC.opendb
+/Release
