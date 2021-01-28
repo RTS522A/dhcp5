@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <vector>
 #include <iostream>
+#include <map>
+#include <algorithm>
 #include "toolbox.h"
 
 
@@ -66,41 +68,42 @@ const TCHAR ptsERRORPrefix[] = TEXT("ERROR %d: ");
 //// DHCP magic cookie values
 //const BYTE pbDHCPMagicCookie[] = { 99, 130, 83, 99 };
 
-struct AddressInUseInformation
-{
-	DWORD dwAddrValue;
-	BYTE* pbClientIdentifier;
-	DWORD dwClientIdentifierSize;
-	// SYSTEMTIME stExpireTime;  // If lease timeouts are needed
-};
-typedef std::vector<AddressInUseInformation> VectorAddressInUseInformation;
-
-typedef bool(*FindIndexOfFilter)(const AddressInUseInformation& raiui, const void* const pvFilterData);
-int FindIndexOf(const VectorAddressInUseInformation* const pvAddressesInUse, const FindIndexOfFilter pFilter, const void* const pvFilterData)
-{
-	ASSERT((0 != pvAddressesInUse) && (0 != pFilter) && (0 != pvFilterData));
-	for (size_t i = 0; i < pvAddressesInUse->size(); i++)
-	{
-		if (pFilter(pvAddressesInUse->at(i), pvFilterData))
-		{
-			return (int)i;
-		}
-	}
-	return -1;
-}
-bool PushBack(VectorAddressInUseInformation* const pvAddressesInUse, const AddressInUseInformation* const paiui)
-{
-	ASSERT((0 != pvAddressesInUse) && (0 != paiui));
-	try
-	{
-		pvAddressesInUse->push_back(*paiui);
-	}
-	catch (const std::bad_alloc)
-	{
-		return false;
-	}
-	return true;
-}
+//struct AddressInUseInformation
+//{
+//    DWORD dwAddrValue = {0};
+//    std::vector<BYTE> clientID;
+//	//BYTE* pbClientIdentifier;
+//	//DWORD dwClientIdentifierSize;
+//	// SYSTEMTIME stExpireTime;  // If lease timeouts are needed
+//};
+//typedef std::vector<AddressInUseInformation> VectorAddressInUseInformation;
+//
+//typedef bool(*FindIndexOfFilter)(const AddressInUseInformation& raiui, const void* const pvFilterData);
+//int FindIndexOf(const VectorAddressInUseInformation* const pvAddressesInUse, const FindIndexOfFilter pFilter, const void* const pvFilterData)
+//{
+//	ASSERT((0 != pvAddressesInUse) && (0 != pFilter) && (0 != pvFilterData));
+//	for (size_t i = 0; i < pvAddressesInUse->size(); i++)
+//	{
+//		if (pFilter(pvAddressesInUse->at(i), pvFilterData))
+//		{
+//			return (int)i;
+//		}
+//	}
+//	return -1;
+//}
+//bool PushBack(VectorAddressInUseInformation* const pvAddressesInUse, const AddressInUseInformation* const paiui)
+//{
+//	ASSERT((0 != pvAddressesInUse) && (0 != paiui));
+//	try
+//	{
+//		pvAddressesInUse->push_back(*paiui);
+//	}
+//	catch (const std::bad_alloc)
+//	{
+//		return false;
+//	}
+//	return true;
+//}
 //
 //// RFC 2131 section 2
 //#pragma warning(push)
@@ -225,47 +228,47 @@ bool GetIPAddressInformation(DWORD* const pdwAddr, DWORD* const pdwMask, DWORD* 
 	return bSuccess;
 }
 
-bool InitializeDHCPServer(SOCKET* const psServerSocket, const DWORD dwServerAddr, char* const pcsServerHostName, const size_t stServerHostNameLength)
-{
-	ASSERT((0 != psServerSocket) && (0 != dwServerAddr) && (0 != pcsServerHostName) && (1 <= stServerHostNameLength));
-	bool bSuccess = false;
-	// Determine server hostname
-	if (0 != gethostname(pcsServerHostName, (int)stServerHostNameLength))
-	{
-		pcsServerHostName[0] = '\0';
-	}
-	// Open socket and set broadcast option on it
-	*psServerSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-	if (INVALID_SOCKET != *psServerSocket)
-	{
-		SOCKADDR_IN saServerAddress;
-		saServerAddress.sin_family = AF_INET;
-		saServerAddress.sin_addr.s_addr = dwServerAddr;  // Already in network byte order
-		saServerAddress.sin_port = htons((u_short)DHCP_SERVER_PORT);
-		const int iServerAddressSize = sizeof(saServerAddress);
-		if (SOCKET_ERROR != bind(*psServerSocket, (SOCKADDR*)(&saServerAddress), iServerAddressSize))
-		{
-			int iBroadcastOption = TRUE;
-			if (0 == setsockopt(*psServerSocket, SOL_SOCKET, SO_BROADCAST, (char*)(&iBroadcastOption), sizeof(iBroadcastOption)))
-			{
-				bSuccess = true;
-			}
-			else
-			{
-				OUTPUT_ERROR((TEXT("Unable to set socket options.")));
-			}
-		}
-		else
-		{
-			OUTPUT_ERROR((TEXT("Unable to bind to server socket (port %d)."), DHCP_SERVER_PORT));
-		}
-	}
-	else
-	{
-		OUTPUT_ERROR((TEXT("Unable to open server socket (port %d)."), DHCP_SERVER_PORT));
-	}
-	return bSuccess;
-}
+//bool InitializeDHCPServer(SOCKET* const psServerSocket, const DWORD dwServerAddr, char* const pcsServerHostName, const size_t stServerHostNameLength)
+//{
+//	ASSERT((0 != psServerSocket) && (0 != dwServerAddr) && (0 != pcsServerHostName) && (1 <= stServerHostNameLength));
+//	bool bSuccess = false;
+//	// Determine server hostname
+//	if (0 != gethostname(pcsServerHostName, (int)stServerHostNameLength))
+//	{
+//		pcsServerHostName[0] = '\0';
+//	}
+//	// Open socket and set broadcast option on it
+//	*psServerSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+//	if (INVALID_SOCKET != *psServerSocket)
+//	{
+//		SOCKADDR_IN saServerAddress;
+//		saServerAddress.sin_family = AF_INET;
+//		saServerAddress.sin_addr.s_addr = dwServerAddr;  // Already in network byte order
+//		saServerAddress.sin_port = htons((u_short)DHCP_SERVER_PORT);
+//		const int iServerAddressSize = sizeof(saServerAddress);
+//		if (SOCKET_ERROR != bind(*psServerSocket, (SOCKADDR*)(&saServerAddress), iServerAddressSize))
+//		{
+//			int iBroadcastOption = TRUE;
+//			if (0 == setsockopt(*psServerSocket, SOL_SOCKET, SO_BROADCAST, (char*)(&iBroadcastOption), sizeof(iBroadcastOption)))
+//			{
+//				bSuccess = true;
+//			}
+//			else
+//			{
+//				OUTPUT_ERROR((TEXT("Unable to set socket options.")));
+//			}
+//		}
+//		else
+//		{
+//			OUTPUT_ERROR((TEXT("Unable to bind to server socket (port %d)."), DHCP_SERVER_PORT));
+//		}
+//	}
+//	else
+//	{
+//		OUTPUT_ERROR((TEXT("Unable to open server socket (port %d)."), DHCP_SERVER_PORT));
+//	}
+//	return bSuccess;
+//}
 
 //bool FindOptionData(const BYTE bOption, const BYTE* const pbOptions, const int iOptionsSize, const BYTE** const ppbOptionData, unsigned int* const piOptionDataSize)
 //{
@@ -325,23 +328,23 @@ bool InitializeDHCPServer(SOCKET* const psServerSocket, const DWORD dwServerAddr
 //	return bSuccess;
 //}
 
-bool AddressInUseInformationAddrValueFilter(const AddressInUseInformation& raiui, const void* const pvFilterData)
-{
-	const DWORD* const pdwAddrValue = (DWORD*)pvFilterData;
-	return (*pdwAddrValue == raiui.dwAddrValue);
-}
-
-struct ClientIdentifierData
-{
-	const BYTE* pbClientIdentifier;
-	DWORD dwClientIdentifierSize;
-};
-bool AddressInUseInformationClientIdentifierFilter(const AddressInUseInformation& raiui, const void* const pvFilterData)
-{
-	const ClientIdentifierData* const pcid = (ClientIdentifierData*)pvFilterData;
-	ASSERT(0 != pcid);
-	return ((0 != raiui.dwClientIdentifierSize) && (pcid->dwClientIdentifierSize == raiui.dwClientIdentifierSize) && (0 == memcmp(pcid->pbClientIdentifier, raiui.pbClientIdentifier, pcid->dwClientIdentifierSize)));
-}
+//bool AddressInUseInformationAddrValueFilter(const AddressInUseInformation& raiui, const void* const pvFilterData)
+//{
+//	const DWORD* const pdwAddrValue = (DWORD*)pvFilterData;
+//	return (*pdwAddrValue == raiui.dwAddrValue);
+//}
+//
+//struct ClientIdentifierData
+//{
+//	const BYTE* pbClientIdentifier;
+//	DWORD dwClientIdentifierSize;
+//};
+//bool AddressInUseInformationClientIdentifierFilter(const AddressInUseInformation& raiui, const void* const pvFilterData)
+//{
+//	const ClientIdentifierData* const pcid = (ClientIdentifierData*)pvFilterData;
+//	ASSERT(0 != pcid);
+//	return ((0 != raiui.dwClientIdentifierSize) && (pcid->dwClientIdentifierSize == raiui.dwClientIdentifierSize) && (0 == memcmp(pcid->pbClientIdentifier, raiui.pbClientIdentifier, pcid->dwClientIdentifierSize)));
+//}
 //
 //void ProcessDHCPClientRequest(const SOCKET sServerSocket, const char* const pcsServerHostName, const BYTE* const pbData, const int iDataSize, VectorAddressInUseInformation* const pvAddressesInUse, const DWORD dwServerAddr, const DWORD dwMask, const DWORD dwMinAddr, const DWORD dwMaxAddr)
 //{
@@ -682,123 +685,445 @@ bool AddressInUseInformationClientIdentifierFilter(const AddressInUseInformation
 
 
 
-bool ReadDHCPClientRequests(const SOCKET sServerSocket, const char* const pcsServerHostName, VectorAddressInUseInformation* const pvAddressesInUse, const DWORD dwServerAddr, const DWORD dwMask, const DWORD dwMinAddr, const DWORD dwMaxAddr)
+//bool ReadDHCPClientRequests(const SOCKET sServerSocket, const char* const pcsServerHostName, VectorAddressInUseInformation* const pvAddressesInUse, const DWORD dwServerAddr, const DWORD dwMask, const DWORD dwMinAddr, const DWORD dwMaxAddr)
+//{
+//	ASSERT((INVALID_SOCKET != sServerSocket) && (0 != pcsServerHostName) && (0 != pvAddressesInUse) && (0 != dwServerAddr) && (0 != dwMask) && (0 != dwMinAddr) && (0 != dwMaxAddr));
+//	bool bSuccess = false;
+//	BYTE* const pbReadBuffer = (BYTE*)LocalAlloc(LMEM_FIXED, MAX_UDP_MESSAGE_SIZE);
+//	if (0 != pbReadBuffer)
+//	{
+//		bSuccess = true;
+//		int iLastError = 0;
+//		ASSERT(WSAENOTSOCK != iLastError);
+//		while (WSAENOTSOCK != iLastError)
+//		{
+//			SOCKADDR_IN saClientAddress;
+//			int iClientAddressSize = sizeof(saClientAddress);
+//			const int iBytesReceived = recvfrom(sServerSocket, (char*)pbReadBuffer, MAX_UDP_MESSAGE_SIZE, 0, (SOCKADDR*)(&saClientAddress), &iClientAddressSize);
+//			if (SOCKET_ERROR != iBytesReceived)
+//			{
+//                DHCPMsgParser pars((DHCPMsgParser::DHCPMsg*)pbReadBuffer, iBytesReceived);
+//                if (!pars.isValid())
+//                {
+//                    std::cout << "Invalid DHCP Message" << std::endl;
+//                    continue;
+//                }
+//
+//                auto clientHostName = pars.hostName();
+//                std::cout << "Client\t: " << clientHostName.c_str() << std::endl;
+//
+//                if (clientHostName == pcsServerHostName)
+//                {
+//                    std::cout << "Client hostname matches the server hostname" << std::endl;
+//                    continue;
+//                }
+//
+//                DHCPMsgParser::MsgType type = DHCPMsgParser::DHCPINFORM;
+//                pars.msgType(type);
+//                std::cout << "TYPE\t: " << type << std::endl;
+//
+//                auto response = pars.createResponse();
+//                DHCPMsgParser::DHCPMsg* respStruct = (DHCPMsgParser::DHCPMsg*)&(response[0]);
+//                DHCPMsgParser replyParse(respStruct, response.size());
+//
+//                replyParse.setLeaseTime(5 * 60);//5 mins
+//                replyParse.setSubnetMask(dwMask);
+//                replyParse.setServerIP(dwServerAddr);
+//                replyParse.setNTPServer(dwServerAddr);
+//
+//                // auto clientIP = (dwServerAddr && 0xFF000000)|(0x03000000);
+//                if (type == DHCPMsgParser::DHCPDISCOVER)
+//                {
+//                    replyParse.setMsgType(DHCPMsgParser::DHCPOFFER);
+//                    respStruct->yiaddr = 0x03DDDDDD; // offer an IP
+//                }
+//                else if (type == DHCPMsgParser::DHCPREQUEST)
+//                {
+//                    DWORD dwRequestedIPAddress = INADDR_BROADCAST;  // Invalid IP address for later comparison
+//                    auto reqIP = pars.getOption(DHCPMsgParser::REQUESTEDIPADDRESS);
+//                    if (reqIP) { dwRequestedIPAddress = *(DWORD*)reqIP->data; }
+//                    auto sevId = pars.getOption(DHCPMsgParser::SERVERIDENTIFIER);
+//
+//                    replyParse.setMsgType(DHCPMsgParser::DHCPACK);
+//                    respStruct->yiaddr = 0x03DDDDDD; // offer an IP
+//                }
+//
+//                auto clientAddr = replyParse.updateAndgetClientAddr((DHCPMsgParser::DHCPMsg*)pbReadBuffer);
+//                assert((INADDR_LOOPBACK != clientAddr) && (0 != clientAddr));
+//                SOCKADDR_IN saClientAddress;
+//                saClientAddress.sin_family = AF_INET;
+//                saClientAddress.sin_addr.s_addr = clientAddr;
+//                saClientAddress.sin_port = htons((u_short)DHCP_CLIENT_PORT);
+//                VERIFY(SOCKET_ERROR != sendto(sServerSocket, (char*)&response[0], response.size(), 0, (SOCKADDR*)&saClientAddress, sizeof(saClientAddress)));
+//
+//
+//				// ASSERT(DHCP_CLIENT_PORT == ntohs(saClientAddress.sin_port));  // Not always the case
+//				// ProcessDHCPClientRequest(sServerSocket, pcsServerHostName, pbReadBuffer, iBytesReceived, pvAddressesInUse, dwServerAddr, dwMask, dwMinAddr, dwMaxAddr);
+//			}
+//			else
+//			{
+//				iLastError = WSAGetLastError();
+//				if (WSAENOTSOCK == iLastError)
+//				{
+//					OUTPUT((TEXT("Stopping server request handler.")));
+//				}
+//				else if (WSAEINTR == iLastError)
+//				{
+//					OUTPUT((TEXT("Socket operation was cancelled.")));
+//				}
+//				else
+//				{
+//					OUTPUT_ERROR((TEXT("Call to recvfrom returned error %d."), iLastError));
+//				}
+//			}
+//		}
+//		VERIFY(0 == LocalFree(pbReadBuffer));
+//	}
+//	else
+//	{
+//		OUTPUT_ERROR((TEXT("Unable to allocate memory for client datagram read buffer.")));
+//	}
+//	return bSuccess;
+//}
+
+//SOCKET sServerSocket = INVALID_SOCKET;  // Global to allow ConsoleCtrlHandlerRoutine access to it
+
+
+
+
+#include <functional>
+#include <string>
+#include <thread>
+#include <winsock.h>
+#include <atomic>
+
+class IPAddress
 {
-	ASSERT((INVALID_SOCKET != sServerSocket) && (0 != pcsServerHostName) && (0 != pvAddressesInUse) && (0 != dwServerAddr) && (0 != dwMask) && (0 != dwMinAddr) && (0 != dwMaxAddr));
-	bool bSuccess = false;
-	BYTE* const pbReadBuffer = (BYTE*)LocalAlloc(LMEM_FIXED, MAX_UDP_MESSAGE_SIZE);
-	if (0 != pbReadBuffer)
-	{
-		bSuccess = true;
-		int iLastError = 0;
-		ASSERT(WSAENOTSOCK != iLastError);
-		while (WSAENOTSOCK != iLastError)
-		{
-			SOCKADDR_IN saClientAddress;
-			int iClientAddressSize = sizeof(saClientAddress);
-			const int iBytesReceived = recvfrom(sServerSocket, (char*)pbReadBuffer, MAX_UDP_MESSAGE_SIZE, 0, (SOCKADDR*)(&saClientAddress), &iClientAddressSize);
-			if (SOCKET_ERROR != iBytesReceived)
-			{
-                DHCPMsgParser pars((DHCPMsgParser::DHCPMsg*)pbReadBuffer, iBytesReceived);
+public:
+    IPAddress(const std::string& ip) {}
+    IPAddress(DWORD       ip_i):ip(ip_i){}
+    IPAddress() :ip(0) {}
+
+    operator DWORD()
+    {
+        return ip;
+    }
+
+    operator std::string()
+    {
+        return std::to_string(ip);
+    }
+
+private:
+    DWORD ip = {0};
+};
+
+class DHCPServer
+{
+public:
+
+    /// const uint32_t DHCPServerPort = 67;
+    DHCPServer( const IPAddress& ip_i, const IPAddress& timerServer_i, const std::chrono::seconds& leaseTime_i = std::chrono::minutes(5), 
+                const uint16_t serverPort_i = 67,
+                const uint16_t clientport_i = 68) : ip(ip_i), timeServer(timerServer_i),leaseTime(leaseTime_i),
+        serverPort(serverPort_i),clientPort(clientport_i)
+    {}
+
+    ~DHCPServer()
+    {
+        stop();
+    }
+    bool start()
+    {
+        if (connectionThread.joinable()) return true; // already running
+
+        stopRequest = false;
+        if (!initialize()) return false;
+
+        connectionThread = std::thread([this]() {run(); });
+        return true;
+    }
+
+    void stop()
+    {
+        stopRequest = true;
+        auto socknew = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
+        SOCKADDR_IN saClientAddress2;
+        saClientAddress2.sin_family = AF_INET;
+        saClientAddress2.sin_addr.s_addr = ip;
+        saClientAddress2.sin_port = htons((u_short)serverPort);
+
+        int val = 0;
+        auto ret = sendto(socknew, (char*)&val, sizeof(val), 0, (SOCKADDR*)&saClientAddress2, sizeof(saClientAddress2));
+
+        if (connectionThread.joinable())connectionThread.join();
+        closesocket(sServerSocket);
+        closesocket(socknew);
+
+    }
+
+    std::function<IPAddress(const std::vector<char>&)>          isKnownClient  ;
+    std::function<IPAddress(const std::vector<char>&)>          issueNewIP    ;
+    std::function<void (const std::vector<char>&, IPAddress)>   evtRenewed     ;
+    //std::function<void (const std::vector<char>&)>              evtRelease     ;
+
+private:
+
+    bool initialize()
+    {
+        // Determine server hostname
+
+        char serverName[512] = {'\0'};
+        if (0 == gethostname(serverName, (int)511))
+        {
+            serverHostName = serverName;
+        }
+
+        // Open socket and set broadcast option on it
+        sServerSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+        if (INVALID_SOCKET == sServerSocket)
+        {
+            return false;
+        }
+
+        SOCKADDR_IN saServerAddress;
+        saServerAddress.sin_family = AF_INET;
+        saServerAddress.sin_addr.s_addr = ip;  // Already in network byte order
+        saServerAddress.sin_port = htons((u_short)serverPort);
+        const int iServerAddressSize = sizeof(saServerAddress);
+
+        if (SOCKET_ERROR == bind(sServerSocket, (SOCKADDR*)(&saServerAddress), iServerAddressSize))
+        {
+            return false;
+        }
+        int iBroadcastOption = TRUE;
+        return (0 == setsockopt(sServerSocket, SOL_SOCKET, SO_BROADCAST, (char*)(&iBroadcastOption), sizeof(iBroadcastOption)));
+    }
+    
+    void run()
+    {
+            std::vector<char> readBuffer(MAX_UDP_MESSAGE_SIZE,0);
+            while (true)
+            {
+                SOCKADDR_IN saClientAddress;
+                int iClientAddressSize = sizeof(saClientAddress);
+                const int iBytesReceived = recvfrom(sServerSocket, readBuffer.data(), MAX_UDP_MESSAGE_SIZE, 0, (SOCKADDR*)(&saClientAddress), &iClientAddressSize);
+                if (stopRequest)
+                {
+                   // OUTPUT((TEXT("Stop requested")));
+                    break;
+                }
+
+                if (SOCKET_ERROR == iBytesReceived)
+                {
+                    auto iLastError = WSAGetLastError();
+                    if (WSAENOTSOCK == iLastError)
+                    {
+                        OUTPUT((TEXT("Stopping server request handler.")));
+                        break;
+                    }
+                    else if (WSAEINTR == iLastError)
+                    {
+                        OUTPUT((TEXT("Socket operation was cancelled.")));
+                        break;
+                    }
+                    else
+                    {
+                        OUTPUT_ERROR((TEXT("Call to recvfrom returned error %d."), iLastError));
+                        break;
+                    }
+                }
+                if (!issueNewIP /*|| !evtRelease*/ || !evtRenewed || !isKnownClient)
+                {
+                    continue;
+                }
+
+                auto dhcpMsgIn = (DHCPMsgParser::DHCPMsg*)readBuffer.data();
+                DHCPMsgParser pars(dhcpMsgIn, iBytesReceived);
                 if (!pars.isValid())
                 {
                     std::cout << "Invalid DHCP Message" << std::endl;
                     continue;
                 }
 
-                auto clientHostName = pars.hostName();
-                std::cout << "Client\t: " << clientHostName.c_str() << std::endl;
+                handleDHCPMessage(pars, dhcpMsgIn);
+            }
+    }
+    
+    bool sendToClient(u_long clientAddr, const std::vector<BYTE>& response )
+    {
+        SOCKADDR_IN saClientAddress2;
+        saClientAddress2.sin_family = AF_INET;
+        saClientAddress2.sin_addr.s_addr = clientAddr;
+        saClientAddress2.sin_port = htons((u_short)clientPort);
+        if (SOCKET_ERROR == sendto(sServerSocket, (char*)response.data(), response.size(), 0, (SOCKADDR*)&saClientAddress2, sizeof(saClientAddress2)))
+        {
+            return false;
+        }
+        return true;
+    }
 
-                if (clientHostName == pcsServerHostName)
+    void handleDHCPMessage(const DHCPMsgParser& pars, DHCPMsgParser::DHCPMsg* dhcpMsgIn)
+    {
+        if (!serverHostName.empty() && serverHostName == pars.hostName())
+        {
+            std::cout << "Client hostname matches the server hostname" << std::endl;
+            return;
+        }
+
+        DHCPMsgParser::MsgType type = DHCPMsgParser::DHCPINFORM;
+        pars.msgType(type);
+
+        if (type != DHCPMsgParser::DHCPDISCOVER&&
+            type != DHCPMsgParser::DHCPREQUEST)
+        {
+            // Do not send anything back for other messages
+            return;
+        }
+
+        auto response = pars.createResponse();
+        DHCPMsgParser::DHCPMsg* respStruct = (DHCPMsgParser::DHCPMsg*)&(response[0]);
+        DHCPMsgParser replyParse(respStruct, response.size());
+
+        replyParse.setLeaseTime(leaseTime.count());//5 mins
+        replyParse.setSubnetMask(subnetMask);
+        replyParse.setServerIP(ip);
+        replyParse.setNTPServer(timeServer);
+
+
+        std::vector<char> clientIdentifier;
+        auto clientId = pars.getOption(DHCPMsgParser::CLIENTIDENTIFIER);
+        if (clientId)
+        {
+            clientIdentifier.insert(clientIdentifier.end(), clientId->data, clientId->data + clientId->size);
+        }
+        else
+        {
+            clientIdentifier.insert(clientIdentifier.end(), dhcpMsgIn->chaddr, dhcpMsgIn->chaddr + sizeof(dhcpMsgIn->chaddr));
+        }
+
+        IPAddress alreadyIssuesIP = isKnownClient(clientIdentifier);
+        bool callUpdateEvent = false;
+
+        // auto clientIP = (dwServerAddr && 0xFF000000)|(0x03000000);
+        if (type == DHCPMsgParser::DHCPDISCOVER)
+        {
+            alreadyIssuesIP = alreadyIssuesIP ? alreadyIssuesIP : issueNewIP(clientIdentifier);
+            if (!alreadyIssuesIP)
+            {
+                std::cout << "Could not issue an IP. Client\t: " << pars.hostName().c_str() << std::endl;
+                return;
+            }
+
+            replyParse.setMsgType(DHCPMsgParser::DHCPOFFER);
+            respStruct->yiaddr = alreadyIssuesIP; // offer an IP
+            callUpdateEvent = true;
+        }
+        else if (type == DHCPMsgParser::DHCPREQUEST)
+        {
+            DWORD dwRequestedIPAddress = INADDR_BROADCAST;  // Invalid IP address for later comparison
+            DWORD serverIdentifier     = INADDR_BROADCAST;  // Invalid IP address for later comparison
+            auto reqIP = pars.getOption(DHCPMsgParser::REQUESTEDIPADDRESS);
+            if (reqIP) { dwRequestedIPAddress = *(DWORD*)reqIP->data; } // TODO sze check for DWORD
+            auto sevId = pars.getOption(DHCPMsgParser::SERVERIDENTIFIER);
+            if (sevId) { serverIdentifier = *(DWORD*)sevId->data; }// TODO sze check for DWORD
+
+
+            if (serverIdentifier == ip)
+            {
+                if (alreadyIssuesIP)
                 {
-                    std::cout << "Client hostname matches the server hostname" << std::endl;
-                    continue;
-                }
-
-                DHCPMsgParser::MsgType type = DHCPMsgParser::DHCPINFORM;
-                pars.msgType(type);
-                std::cout << "TYPE\t: " << type << std::endl;
-
-                auto response = pars.createResponse();
-                DHCPMsgParser::DHCPMsg* respStruct = (DHCPMsgParser::DHCPMsg*)&(response[0]);
-                DHCPMsgParser replyParse(respStruct, response.size());
-
-                replyParse.setLeaseTime(5 * 60);//5 mins
-                replyParse.setSubnetMask(dwMask);
-                replyParse.setServerIP(dwServerAddr);
-                replyParse.setNTPServer(dwServerAddr);
-
-                // auto clientIP = (dwServerAddr && 0xFF000000)|(0x03000000);
-                if (type == DHCPMsgParser::DHCPDISCOVER)
-                {
-                    replyParse.setMsgType(DHCPMsgParser::DHCPOFFER);
-                    respStruct->yiaddr = 0x03DDDDDD; // offer an IP
-                }
-                else if (type == DHCPMsgParser::DHCPREQUEST)
-                {
-                    DWORD dwRequestedIPAddress = INADDR_BROADCAST;  // Invalid IP address for later comparison
-                    auto reqIP = pars.getOption(DHCPMsgParser::REQUESTEDIPADDRESS);
-                    if (reqIP) { dwRequestedIPAddress = *(DWORD*)reqIP->data; }
-                    auto sevId = pars.getOption(DHCPMsgParser::SERVERIDENTIFIER);
-
                     replyParse.setMsgType(DHCPMsgParser::DHCPACK);
-                    respStruct->yiaddr = 0x03DDDDDD; // offer an IP
+                    respStruct->yiaddr = alreadyIssuesIP; // offer an IP
+                    callUpdateEvent = true;
                 }
+                else
+                {
+                    replyParse.setMsgType(DHCPMsgParser::DHCPNAK);
+                    replyParse.setLeaseTime(0);
+                    replyParse.setSubnetMask(0);
+                    replyParse.setNTPServer(0);
+                }
+            }
+            else if ((INADDR_BROADCAST != dwRequestedIPAddress) || (INADDR_BROADCAST == dwRequestedIPAddress) && (0 != dhcpMsgIn->ciaddr))
+            {
+                if (alreadyIssuesIP && (alreadyIssuesIP == dwRequestedIPAddress || alreadyIssuesIP == dhcpMsgIn->ciaddr))
+                {
+                    replyParse.setMsgType(DHCPMsgParser::DHCPACK);
+                    respStruct->yiaddr = alreadyIssuesIP; // offer an IP
+                    respStruct->ciaddr = alreadyIssuesIP;
+                    callUpdateEvent = true;
+                }
+                else
+                {
+                    replyParse.setMsgType(DHCPMsgParser::DHCPNAK);
+                    replyParse.setLeaseTime(0);
+                    replyParse.setSubnetMask(0);
+                    replyParse.setNTPServer(0);
+                }
+            }
+            else
+            {
+                // No need to send anything here.
+                return;
+            }
+        }
 
-                auto clientAddr = replyParse.updateAndgetClientAddr((DHCPMsgParser::DHCPMsg*)pbReadBuffer);
-                assert((INADDR_LOOPBACK != clientAddr) && (0 != clientAddr));
-                SOCKADDR_IN saClientAddress;
-                saClientAddress.sin_family = AF_INET;
-                saClientAddress.sin_addr.s_addr = clientAddr;
-                saClientAddress.sin_port = htons((u_short)DHCP_CLIENT_PORT);
-                VERIFY(SOCKET_ERROR != sendto(sServerSocket, (char*)&response[0], response.size(), 0, (SOCKADDR*)&saClientAddress, sizeof(saClientAddress)));
+        auto clientAddr = replyParse.updateAndgetClientAddr(dhcpMsgIn);
+        assert((INADDR_LOOPBACK != clientAddr) && (0 != clientAddr));
+        if (!sendToClient(clientAddr, response))
+        {
+            std::cout << "Failed to sendto client \n";
+            return;
+        }
+        if (callUpdateEvent) evtRenewed(clientIdentifier, alreadyIssuesIP);
+    }
 
+private:
 
-				// ASSERT(DHCP_CLIENT_PORT == ntohs(saClientAddress.sin_port));  // Not always the case
-				// ProcessDHCPClientRequest(sServerSocket, pcsServerHostName, pbReadBuffer, iBytesReceived, pvAddressesInUse, dwServerAddr, dwMask, dwMinAddr, dwMaxAddr);
-			}
-			else
-			{
-				iLastError = WSAGetLastError();
-				if (WSAENOTSOCK == iLastError)
-				{
-					OUTPUT((TEXT("Stopping server request handler.")));
-				}
-				else if (WSAEINTR == iLastError)
-				{
-					OUTPUT((TEXT("Socket operation was cancelled.")));
-				}
-				else
-				{
-					OUTPUT_ERROR((TEXT("Call to recvfrom returned error %d."), iLastError));
-				}
-			}
-		}
-		VERIFY(0 == LocalFree(pbReadBuffer));
-	}
-	else
-	{
-		OUTPUT_ERROR((TEXT("Unable to allocate memory for client datagram read buffer.")));
-	}
-	return bSuccess;
-}
+    std::atomic<bool> stopRequest = false;
+    IPAddress   ip = {};
+    IPAddress   timeServer = {};
+    std::chrono::seconds leaseTime = {};
+    uint16_t    serverPort = {};
+    uint16_t    clientPort = {};
 
-SOCKET sServerSocket = INVALID_SOCKET;  // Global to allow ConsoleCtrlHandlerRoutine access to it
+    std::thread connectionThread;
+    SOCKET      sServerSocket = {};
+    DWORD       subnetMask = 0;
+    std::string serverHostName;
+};
 
-BOOL WINAPI ConsoleCtrlHandlerRoutine(DWORD dwCtrlType)
+//
+//DHCPServer* pServer = nullptr;
+//BOOL WINAPI ConsoleCtrlHandlerRoutine(DWORD dwCtrlType)
+//{
+//    BOOL bReturn = FALSE;
+//    if ((CTRL_C_EVENT == dwCtrlType) || (CTRL_BREAK_EVENT == dwCtrlType))
+//    {
+//        if (pServer)
+//        {
+//            pServer->stop();
+//        }
+//       // if (INVALID_SOCKET != sServerSocket)
+//       // {
+//       //     VERIFY(0 == closesocket(sServerSocket));
+//       //     sServerSocket = INVALID_SOCKET;
+//       // }
+//        bReturn = TRUE;
+//    }
+//    return bReturn;
+//}
+
+struct AddressInUseInformation
 {
-	BOOL bReturn = FALSE;
-	if ((CTRL_C_EVENT == dwCtrlType) || (CTRL_BREAK_EVENT == dwCtrlType))
-	{
-		if (INVALID_SOCKET != sServerSocket)
-		{
-			VERIFY(0 == closesocket(sServerSocket));
-			sServerSocket = INVALID_SOCKET;
-		}
-		bReturn = TRUE;
-	}
-	return bReturn;
-}
+    std::vector<BYTE> clientID;
+    IPAddress dwAddrValue = { 0 };
+    //BYTE* pbClientIdentifier;
+    //DWORD dwClientIdentifierSize;
+    // SYSTEMTIME stExpireTime;  // If lease timeouts are needed
+};
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -807,70 +1132,114 @@ int main(int /*argc*/, char** /*argv*/)
 	OUTPUT((TEXT("2016-04-02")));
 	OUTPUT((TEXT("Copyright (c) 2001-2016 by David Anson (http://dlaa.me/)")));
 	OUTPUT((TEXT("")));
-	if (SetConsoleCtrlHandler(ConsoleCtrlHandlerRoutine, TRUE))
-	{
-		DWORD dwServerAddr;
-		DWORD dwMask;
-		DWORD dwMinAddr;
-		DWORD dwMaxAddr;
-		if (GetIPAddressInformation(&dwServerAddr, &dwMask, &dwMinAddr, &dwMaxAddr))
-		{
-			ASSERT((DWValuetoIP(dwMinAddr) <= DWValuetoIP(dwServerAddr)) && (DWValuetoIP(dwServerAddr) <= DWValuetoIP(dwMaxAddr)));
-			VectorAddressInUseInformation vAddressesInUse;
-			AddressInUseInformation aiuiServerAddress;
-			aiuiServerAddress.dwAddrValue = DWIPtoValue(dwServerAddr);
-			aiuiServerAddress.pbClientIdentifier = 0;  // Server entry is only entry without a client ID
-			aiuiServerAddress.dwClientIdentifierSize = 0;
-			if (PushBack(&vAddressesInUse, &aiuiServerAddress))
-			{
-				WSADATA wsaData;
-				if (0 == WSAStartup(MAKEWORD(1, 1), &wsaData))
-				{
-					OUTPUT((TEXT("")));
-					OUTPUT((TEXT("Server is running...  (Press Ctrl+C to shutdown.)")));
-					OUTPUT((TEXT("")));
-					char pcsServerHostName[MAX_HOSTNAME_LENGTH];
-					if (InitializeDHCPServer(&sServerSocket, dwServerAddr, pcsServerHostName, ARRAY_LENGTH(pcsServerHostName)))
-					{
-						VERIFY(ReadDHCPClientRequests(sServerSocket, pcsServerHostName, &vAddressesInUse, dwServerAddr, dwMask, dwMinAddr, dwMaxAddr));
-						if (INVALID_SOCKET != sServerSocket)
-						{
-							VERIFY(0 == closesocket(sServerSocket));
-							sServerSocket = INVALID_SOCKET;
-						}
-					}
-					else
-					{
-						// OUTPUT_ERROR called by InitializeDHCPServer
-					}
-					VERIFY(0 == WSACleanup());
-				}
-				else
-				{
-					OUTPUT_ERROR((TEXT("Unable to initialize WinSock.")));
-				}
-			}
-			else
-			{
-				OUTPUT_ERROR((TEXT("Insufficient memory to add server address.")));
-			}
-			for (size_t i = 0; i < vAddressesInUse.size(); i++)
-			{
-				aiuiServerAddress = vAddressesInUse.at(i);
-				if (0 != aiuiServerAddress.pbClientIdentifier)
-				{
-					VERIFY(0 == LocalFree(aiuiServerAddress.pbClientIdentifier));
-				}
-			}
-		}
-		else
-		{
-			// OUTPUT_ERROR called by GetIPAddressInformation
-		}
-	}
-	else
-	{
-		OUTPUT_ERROR((TEXT("Unable to set Ctrl-C handler.")));
-	}
+    //if( !SetConsoleCtrlHandler(ConsoleCtrlHandlerRoutine, TRUE))
+    //{
+    //    OUTPUT_ERROR((TEXT("Unable to set Ctrl-C handler.")));
+    //    return 0;
+    //}
+
+	DWORD dwServerAddr;
+	DWORD dwMask;
+	DWORD dwMinAddr;
+	DWORD dwMaxAddr;
+    if (!GetIPAddressInformation(&dwServerAddr, &dwMask, &dwMinAddr, &dwMaxAddr))
+    {
+        return 0;
+    }
+
+	ASSERT((DWValuetoIP(dwMinAddr) <= DWValuetoIP(dwServerAddr)) && (DWValuetoIP(dwServerAddr) <= DWValuetoIP(dwMaxAddr)));
+
+    std::map<std::vector<char>,IPAddress> addressList;
+
+	// VectorAddressInUseInformation vAddressesInUse;
+	// AddressInUseInformation aiuiServerAddress;
+	// aiuiServerAddress.dwAddrValue = DWIPtoValue(dwServerAddr);
+    // addressList.emplace_back(aiuiServerAddress);
+
+
+	// aiuiServerAddress.pbClientIdentifier = 0;  // Server entry is only entry without a client ID
+	// aiuiServerAddress.dwClientIdentifierSize = 0;
+
+    //if (!PushBack(&vAddressesInUse, &aiuiServerAddress))
+    //{
+    //    OUTPUT_ERROR((TEXT("Insufficient memory to add server address.")));
+    //    return 0;
+    //}
+	WSADATA wsaData;
+    if (0 != WSAStartup(MAKEWORD(1, 1), &wsaData))
+    {
+        OUTPUT_ERROR((TEXT("Unable to initialize WinSock.")));
+        return 0;
+    }
+
+
+
+
+    DHCPServer server(dwServerAddr, dwServerAddr);
+
+    server.isKnownClient = [&addressList](auto client)->IPAddress
+    {
+        auto it = addressList.find(client);
+        return it == addressList.end() ? IPAddress() : it->second;
+    };
+
+    server.evtRenewed = [&addressList](auto& client, auto& ip)
+    {
+        auto it = addressList.find(client);
+        if (it == addressList.end())    addressList.insert(std::pair<std::vector<char>, IPAddress>(client, ip));
+        else                            it->second = ip;
+    };
+
+    server.issueNewIP = [&](auto client) ->IPAddress
+    {
+        DWORD minAddress = DWIPtoValue(dwMinAddr);
+        DWORD maxAddress = DWIPtoValue(dwMaxAddr);
+
+        for (DWORD dw = minAddress; dw <= maxAddress; ++dw)
+        { 
+            auto ipItr = DWValuetoIP(dw);
+            auto it = std::find_if(addressList.begin(), addressList.end(), [ipItr](auto itr)->bool
+            {
+                if (ipItr == itr.second) return true;
+                else return false;
+            });
+
+            if (it == addressList.end() && ipItr != dwServerAddr)
+            {
+                return IPAddress(ipItr);
+            }
+            // auto ip = DWValuetoIP(dw);
+            // printf("Value = %ul, IP =%ul  %d.%d.%d.%d\n", dw, DWValuetoIP(ip), DWIP0(ip), DWIP1(ip), DWIP2(ip), DWIP3(ip));
+            //  std::cout << "Value = " << dw << "; IP = " << DWValuetoIP(dw)<<"  "<<\n";
+        }
+        return IPAddress();
+    };
+
+    if (!server.start())
+    {
+        OUTPUT((TEXT("Failed to start server")));
+        return 0;
+    }
+
+    OUTPUT((TEXT("")));
+    OUTPUT((TEXT("Server is running...  (Press Enter to shutdown.)")));
+    OUTPUT((TEXT("")));
+
+    std::cin.get();
+    server.stop();
+
+	VERIFY(0 == WSACleanup());
+
+	
+	//for (size_t i = 0; i < vAddressesInUse.size(); i++)
+	//{
+	//	aiuiServerAddress = vAddressesInUse.at(i);
+	//	if (0 != aiuiServerAddress.pbClientIdentifier)
+	//	{
+	//		VERIFY(0 == LocalFree(aiuiServerAddress.pbClientIdentifier));
+	//	}
+	//}
+
+
 	return 0;
 }

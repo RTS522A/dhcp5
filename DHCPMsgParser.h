@@ -9,12 +9,12 @@
 // Maximum size of a UDP datagram (see RFC 768)
 #define MAX_UDP_MESSAGE_SIZE ((65536)-8)
 // DHCP constants (see RFC 2131 section 4.1)
-#define DHCP_SERVER_PORT (67)
-#define DHCP_CLIENT_PORT (68)
+// #define DHCP_SERVER_PORT (67)
+//#define DHCP_CLIENT_PORT (68)
 // Broadcast bit for flags field (RFC 2131 section 2)
 #define BROADCAST_FLAG (0x80)
 // For display of host name information
-#define MAX_HOSTNAME_LENGTH (256)
+//#define MAX_HOSTNAME_LENGTH (256)
 // RFC 2131 section 2
 
 const char pcsServerName[] = "DHCPLite DHCP server";
@@ -199,10 +199,10 @@ public:
         auto option = getOption(Options::HOSTNAME);
         if (nullptr == option) { return std::string(); }
 
-        auto buff = std::make_unique<char[]>(option->size + 1);
-        ZeroMemory(&(buff[0]), option->size + 1);
-        memcpy(&(buff[0]), option->data, option->size);
-        std::string clientHostName(&(buff[0]));
+        std::vector<char> buff(option->size + 1, 0);
+        memcpy(buff.data(), option->data, option->size);
+
+        std::string clientHostName(buff.data());
         return clientHostName;
     }
 
@@ -233,7 +233,6 @@ public:
         newMsg->flags = mMsg->flags;
         newMsg->giaddr = mMsg->giaddr;
         CopyMemory(newMsg->chaddr, mMsg->chaddr, sizeof(newMsg->chaddr));
-        const char* pServiceName = "VolcanoDHCPServer";
         strncpy_s((char*)(newMsg->sname), sizeof(newMsg->sname), pcsServerName, _TRUNCATE);
 
         DHCPServerOptions* const pdhcpsoServerOptions = (DHCPServerOptions*)(newMsg->options);
